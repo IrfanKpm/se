@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Everything as a Service — XaaS</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=Mulish:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060810;
+    --card: #0d1120;
+    --accent1: #00f5c4;
+    --accent2: #7b5cff;
+    --accent3: #ff4e6a;
+    --text: #e8eaf2;
+    --muted: #6b7294;
+    --border: rgba(123,92,255,0.2);
+    --glow: 0 0 40px rgba(0,245,196,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--accent1);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1px solid var(--accent2);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.15s ease;
+    mix-blend-mode: screen;
+  }
+
+  /* Slide container */
+  .slides-wrapper {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.6s cubic-bezier(.4,0,.2,1), transform 0.6s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+    pointer-events: none;
+  }
+
+  /* Background grid */
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(123,92,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,92,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    z-index: 0;
+  }
+
+  .slide > * { position: relative; z-index: 1; }
+
+  /* Slide number + progress */
+  .slide-meta {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .dot.active {
+    background: var(--accent1);
+    width: 24px;
+    border-radius: 3px;
+    box-shadow: 0 0 10px var(--accent1);
+  }
+
+  .slide-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  /* Nav buttons */
+  .nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(13,17,32,0.8);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .nav-btn:hover { border-color: var(--accent1); color: var(--accent1); box-shadow: var(--glow); }
+  .nav-btn.prev { left: 20px; }
+  .nav-btn.next { right: 20px; }
+
+  /* === SLIDE STYLES === */
+
+  /* SLIDE 1 — TITLE */
+  .slide-title {
+    text-align: center;
+  }
+  .slide-title .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent1);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .slide-title .eyebrow::before,
+  .slide-title .eyebrow::after {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--accent1);
+  }
+  .slide-title h1 {
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent1) 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -2px;
+    margin-bottom: 8px;
+  }
+  .slide-title .subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 20px;
+  }
+  .slide-title .tag-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    background: rgba(123,92,255,0.07);
+    letter-spacing: 1px;
+  }
+  .tag.green { color: var(--accent1); border-color: rgba(0,245,196,0.2); background: rgba(0,245,196,0.05); }
+
+  /* Decorative orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 { width: 400px; height: 400px; background: rgba(123,92,255,0.12); top: -100px; right: -100px; }
+  .orb-2 { width: 300px; height: 300px; background: rgba(0,245,196,0.08); bottom: -50px; left: -50px; }
+
+  /* SLIDE 2 — AGENDA */
+  .agenda-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 32px;
+  }
+  .agenda-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: all 0.3s;
+  }
+  .agenda-item:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .agenda-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent1);
+    min-width: 28px;
+    padding-top: 2px;
+  }
+  .agenda-text { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+  /* SLIDE 3 — DEFINITION */
+  .def-block {
+    max-width: 800px;
+    text-align: center;
+  }
+  .def-block .big-quote {
+    font-size: clamp(16px, 2.5vw, 24px);
+    line-height: 1.6;
+    color: var(--text);
+    font-weight: 400;
+    margin: 28px 0;
+  }
+  .def-block .big-quote strong {
+    color: var(--accent1);
+    font-weight: 700;
+  }
+  .def-circle-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .def-circle {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 10px;
+    transition: transform 0.3s;
+    cursor: default;
+  }
+  .def-circle:hover { transform: scale(1.1); }
+  .dc-1 { border-color: var(--accent1); color: var(--accent1); }
+  .dc-2 { border-color: var(--accent2); color: var(--accent2); }
+  .dc-3 { border-color: var(--accent3); color: var(--accent3); }
+  .dc-4 { border-color: #ffd86e; color: #ffd86e; }
+
+  /* SLIDE 4 — EVOLUTION */
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 36px;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 80px;
+    right: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+    z-index: 0;
+  }
+  .tl-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .tl-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .tl-year {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .tl-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .tl-sub {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.4;
+    padding: 0 8px;
+  }
+
+  /* SLIDE 5 — SERVICE TYPES */
+  .service-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 28px;
+  }
+  .svc-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 24px 20px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .svc-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .svc-card:hover { transform: translateY(-4px); }
+  .svc-card.iaas::before { background: var(--accent1); }
+  .svc-card.paas::before { background: var(--accent2); }
+  .svc-card.saas::before { background: var(--accent3); }
+  .svc-card.faas::before { background: #ffd86e; }
+  .svc-card.naas::before { background: #00c3ff; }
+  .svc-card.dbaas::before { background: #ff9d4e; }
+  .svc-acronym {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .svc-full { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .svc-desc { font-size: 12px; line-height: 1.5; color: rgba(232,234,242,0.8); }
+  .svc-eg {
+    margin-top: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* SLIDE 6 — KEY CHARACTERISTICS */
+  .char-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 750px;
+    margin-top: 28px;
+  }
+  .char-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    transition: all 0.3s;
+  }
+  .char-item:hover { border-color: var(--accent1); }
+  .char-icon {
+    font-size: 24px;
+    min-width: 36px;
+    text-align: center;
+  }
+  .char-text h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .char-text p { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* SLIDE 7 — ARCHITECTURE */
+  .arch-wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 24px;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    padding: 16px 28px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    position: relative;
+    font-weight: 600;
+    font-size: 14px;
+    overflow: hidden;
+  }
+  .arch-layer::after {
+    content: attr(data-items);
+    position: absolute;
+    right: 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.6;
+    letter-spacing: 1px;
+  }
+  .arch-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  .l1 { background: rgba(0,245,196,0.08); border: 1px solid rgba(0,245,196,0.2); color: var(--accent1); }
+  .l2 { background: rgba(123,92,255,0.08); border: 1px solid rgba(123,92,255,0.25); color: var(--accent2); }
+  .l3 { background: rgba(255,78,106,0.08); border: 1px solid rgba(255,78,106,0.2); color: var(--accent3); }
+  .l4 { background: rgba(255,216,110,0.08); border: 1px solid rgba(255,216,110,0.2); color: #ffd86e; }
+
+  /* SLIDE 8 — ADVANTAGES */
+  .adv-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 28px;
+  }
+  .adv-item {
+    display: flex;
+    gap: 14px;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    align-items: flex-start;
+    transition: all 0.3s;
+  }
+  .adv-item:hover { border-color: var(--accent1); }
+  .adv-check {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(0,245,196,0.1);
+    border: 1px solid var(--accent1);
+    color: var(--accent1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .adv-text h4 { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .adv-text p { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  /* SLIDE 9 — CHALLENGES */
+  .chal-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 28px;
+  }
+  .chal-item {
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid rgba(255,78,106,0.2);
+    border-radius: 10px;
+    transition: all 0.3s;
+  }
+  .chal-item:hover { border-color: var(--accent3); }
+  .chal-icon { font-size: 22px; margin-bottom: 8px; }
+  .chal-item h4 { font-size: 13px; font-weight: 700; color: var(--accent3); margin-bottom: 4px; }
+  .chal-item p { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  /* SLIDE 10 — REAL WORLD EXAMPLES */
+  .ex-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 28px;
+  }
+  .ex-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 14px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .ex-card:hover { transform: translateY(-3px); border-color: var(--accent2); }
+  .ex-logo { font-size: 28px; margin-bottom: 10px; }
+  .ex-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .ex-type { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--accent2); letter-spacing: 2px; margin-bottom: 8px; }
+  .ex-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  /* SLIDE 11 — FUTURE TRENDS */
+  .trends-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 28px;
+  }
+  .trend-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 18px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .trend-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .trend-item:hover::after { transform: scaleX(1); }
+  .trend-icon { font-size: 26px; margin-bottom: 12px; }
+  .trend-item h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .trend-item p { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* SLIDE 12 — CONCLUSION */
+  .conclusion-box {
+    max-width: 700px;
+    text-align: center;
+  }
+  .conclusion-box .big-stat {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 700;
+    color: var(--accent1);
+    text-shadow: 0 0 40px rgba(0,245,196,0.4);
+    margin: 16px 0;
+  }
+  .key-points {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+  .kp {
+    padding: 10px 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .kp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent1); }
+
+  /* Slide headings */
+  .slide-heading {
+    font-size: clamp(24px, 3.5vw, 36px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 4px;
+    align-self: flex-start;
+    width: 100%;
+    max-width: 900px;
+  }
+  .slide-heading span { color: var(--accent1); }
+  .slide-heading-bar {
+    width: 48px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    margin-bottom: 4px;
+    align-self: flex-start;
+    border-radius: 2px;
+  }
+
+  /* Keyboard hint */
+  .key-hint {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    z-index: 100;
+  }
+
+  /* Header strip */
+  .header-strip {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2), var(--accent3));
+    z-index: 200;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .slide { padding: 40px 28px; }
+    .agenda-grid, .service-cards, .trends-grid { grid-template-columns: repeat(2, 1fr); }
+    .ex-grid { grid-template-columns: repeat(2, 1fr); }
+    .adv-grid, .chal-list { grid-template-columns: 1fr; }
+    .timeline { flex-direction: column; gap: 16px; }
+    .timeline::before { display: none; }
+    body { cursor: auto; }
+    .cursor, .cursor-ring { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header-strip"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<div class="key-hint">← → KEYS / CLICK ARROWS</div>
+
+<div class="slides-wrapper" id="slides-wrapper">
+
+  <!-- SLIDE 1: TITLE -->
+  <div class="slide slide-title active" data-index="0">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="eyebrow">B.Tech CSE · Software Engineering</div>
+    <h1>Everything<br>as a Service</h1>
+    <div style="font-size:clamp(14px,2vw,20px); color:var(--muted); margin-top:12px; font-weight:600; letter-spacing:2px;">XaaS — THE CLOUD REVOLUTION</div>
+    <div class="subtitle">Seminar Presentation · Software Engineering</div>
+    <div class="tag-row">
+      <span class="tag green">IaaS</span>
+      <span class="tag">PaaS</span>
+      <span class="tag green">SaaS</span>
+      <span class="tag">FaaS</span>
+      <span class="tag green">NaaS</span>
+      <span class="tag">DBaaS</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: AGENDA -->
+  <div class="slide" data-index="1">
+    <div class="orb orb-1"></div>
+    <div class="slide-heading"><span>Agenda</span></div>
+    <div class="slide-heading-bar"></div>
+    <div class="agenda-grid">
+      <div class="agenda-item"><span class="agenda-num">01</span><span class="agenda-text">What is XaaS? — Definition & Overview</span></div>
+      <div class="agenda-item"><span class="agenda-num">02</span><span class="agenda-text">Evolution from Traditional IT</span></div>
+      <div class="agenda-item"><span class="agenda-num">03</span><span class="agenda-text">Types of "as a Service" Models</span></div>
+      <div class="agenda-item"><span class="agenda-num">04</span><span class="agenda-text">Key Characteristics</span></div>
+      <div class="agenda-item"><span class="agenda-num">05</span><span class="agenda-text">Service Architecture Layers</span></div>
+      <div class="agenda-item"><span class="agenda-num">06</span><span class="agenda-text">Advantages & Benefits</span></div>
+      <div class="agenda-item"><span class="agenda-num">07</span><span class="agenda-text">Challenges & Concerns</span></div>
+      <div class="agenda-item"><span class="agenda-num">08</span><span class="agenda-text">Real-World Examples</span></div>
+      <div class="agenda-item"><span class="agenda-num">09</span><span class="agenda-text">Future Trends & Conclusion</span></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: DEFINITION -->
+  <div class="slide" data-index="2">
+    <div class="orb orb-2"></div>
+    <div class="slide-heading"><span>What is</span> XaaS?</div>
+    <div class="slide-heading-bar"></div>
+    <div class="def-block">
+      <div class="big-quote">
+        <strong>XaaS</strong> — "Everything as a Service" — is a collective term for the delivery of <strong>any IT resource or capability</strong> over the internet, on demand, as a subscription-based service rather than as a product you own.
+      </div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:24px;">Instead of buying, installing, and managing software/hardware — you access it over the cloud and pay as you use.</div>
+      <div class="def-circle-row">
+        <div class="def-circle dc-1">On<br>Demand</div>
+        <div class="def-circle dc-2">Pay Per<br>Use</div>
+        <div class="def-circle dc-3">Internet<br>Delivered</div>
+        <div class="def-circle dc-4">Managed<br>by Provider</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: EVOLUTION -->
+  <div class="slide" data-index="3">
+    <div class="orb orb-1"></div>
+    <div class="slide-heading"><span>Evolution</span> of IT Delivery</div>
+    <div class="slide-heading-bar"></div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--muted)"></div>
+        <div class="tl-year">1970s–90s</div>
+        <div class="tl-label" style="color:#aaa">Traditional IT</div>
+        <div class="tl-sub">Buy, install & maintain all hardware & software on-premise</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--accent1)"></div>
+        <div class="tl-year">2000s</div>
+        <div class="tl-label" style="color:var(--accent1)">SaaS Emerges</div>
+        <div class="tl-sub">Software delivered over web (Salesforce, Gmail)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--accent2)"></div>
+        <div class="tl-year">2006–10</div>
+        <div class="tl-label" style="color:var(--accent2)">IaaS & PaaS</div>
+        <div class="tl-sub">AWS EC2, Google App Engine — infrastructure on demand</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--accent3)"></div>
+        <div class="tl-year">2010s</div>
+        <div class="tl-label" style="color:var(--accent3)">XaaS Era</div>
+        <div class="tl-sub">Everything moves to cloud — DBaaS, FaaS, NaaS & more</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#ffd86e"></div>
+        <div class="tl-year">Today</div>
+        <div class="tl-label" style="color:#ffd86e">AI as a Service</div>
+        <div class="tl-sub">AI/ML models, APIs, agents delivered as cloud services</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: SERVICE TYPES -->
+  <div class="slide" data-index="4">
+    <div class="orb orb-2"></div>
+    <div class="slide-heading"><span>Types</span> of XaaS Models</div>
+    <div class="slide-heading-bar"></div>
+    <div class="service-cards">
+      <div class="svc-card iaas">
+        <div class="svc-acronym" style="color:var(--accent1)">IaaS</div>
+        <div class="svc-full">Infrastructure as a Service</div>
+        <div class="svc-desc">Provides virtualized computing resources — servers, storage, networking.</div>
+        <div class="svc-eg">eg: AWS EC2, Azure VMs, GCP</div>
+      </div>
+      <div class="svc-card paas">
+        <div class="svc-acronym" style="color:var(--accent2)">PaaS</div>
+        <div class="svc-full">Platform as a Service</div>
+        <div class="svc-desc">Development environment to build, test & deploy apps without managing infra.</div>
+        <div class="svc-eg">eg: Heroku, Google App Engine</div>
+      </div>
+      <div class="svc-card saas">
+        <div class="svc-acronym" style="color:var(--accent3)">SaaS</div>
+        <div class="svc-full">Software as a Service</div>
+        <div class="svc-desc">Ready-to-use applications delivered over the internet via a browser.</div>
+        <div class="svc-eg">eg: Gmail, Zoom, Salesforce</div>
+      </div>
+      <div class="svc-card faas">
+        <div class="svc-acronym" style="color:#ffd86e">FaaS</div>
+        <div class="svc-full">Function as a Service</div>
+        <div class="svc-desc">Run individual functions in the cloud, triggered by events (Serverless).</div>
+        <div class="svc-eg">eg: AWS Lambda, Cloudflare Workers</div>
+      </div>
+      <div class="svc-card naas">
+        <div class="svc-acronym" style="color:#00c3ff">NaaS</div>
+        <div class="svc-full">Network as a Service</div>
+        <div class="svc-desc">Network infrastructure delivered as a flexible, managed cloud service.</div>
+        <div class="svc-eg">eg: Cisco Meraki, SD-WAN</div>
+      </div>
+      <div class="svc-card dbaas">
+        <div class="svc-acronym" style="color:#ff9d4e">DBaaS</div>
+        <div class="svc-full">Database as a Service</div>
+        <div class="svc-desc">Managed database hosting — no need to set up or maintain DB servers.</div>
+        <div class="svc-eg">eg: MongoDB Atlas, Firebase</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: KEY CHARACTERISTICS -->
+  <div class="slide" data-index="5">
+    <div class="orb orb-1"></div>
+    <div class="slide-heading"><span>Key</span> Characteristics</div>
+    <div class="slide-heading-bar"></div>
+    <div class="char-list">
+      <div class="char-item"><div class="char-icon">🌐</div><div class="char-text"><h4>Broad Network Access</h4><p>Services accessible via internet from any device — laptop, phone, tablet.</p></div></div>
+      <div class="char-item"><div class="char-icon">📦</div><div class="char-text"><h4>Resource Pooling (Multi-tenancy)</h4><p>Multiple users share the same physical resources while keeping data isolated.</p></div></div>
+      <div class="char-item"><div class="char-icon">⚡</div><div class="char-text"><h4>Rapid Elasticity</h4><p>Scale resources up or down automatically based on demand — no over-provisioning.</p></div></div>
+      <div class="char-item"><div class="char-icon">💰</div><div class="char-text"><h4>Measured Service (Pay-as-you-go)</h4><p>Billing is based on actual usage — storage, compute, bandwidth, API calls.</p></div></div>
+      <div class="char-item"><div class="char-icon">🤖</div><div class="char-text"><h4>On-demand Self-service</h4><p>Users can provision resources instantly without human intervention from the provider.</p></div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: ARCHITECTURE -->
+  <div class="slide" data-index="6">
+    <div class="orb orb-2"></div>
+    <div class="slide-heading"><span>Service</span> Architecture Layers</div>
+    <div class="slide-heading-bar"></div>
+    <div class="arch-wrapper">
+      <div class="arch-layer l1" data-items="SaaS · FaaS · AIaaS · SECaaS">USER LAYER — Applications & End-User Services</div>
+      <div class="arch-arrow">↕</div>
+      <div class="arch-layer l2" data-items="PaaS · DBaaS · CaaS">PLATFORM LAYER — Development Platforms & Middleware</div>
+      <div class="arch-arrow">↕</div>
+      <div class="arch-layer l3" data-items="IaaS · NaaS · STaaS">INFRASTRUCTURE LAYER — Compute, Storage & Network</div>
+      <div class="arch-arrow">↕</div>
+      <div class="arch-layer l4" data-items="Servers · Data Centers · Global Backbone">PHYSICAL LAYER — Hardware & Data Centers</div>
+      <div style="margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <div class="tag green">Provider Manages ↑</div>
+        <div class="tag">More Control ↓</div>
+        <div class="tag" style="color:var(--accent3);border-color:rgba(255,78,106,0.3)">Higher Abstraction ↑</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: ADVANTAGES -->
+  <div class="slide" data-index="7">
+    <div class="orb orb-1"></div>
+    <div class="slide-heading"><span>Advantages</span> of XaaS</div>
+    <div class="slide-heading-bar"></div>
+    <div class="adv-grid">
+      <div class="adv-item"><div class="adv-check">✓</div><div class="adv-text"><h4>Cost Efficiency</h4><p>Converts large CapEx into smaller OpEx. No upfront hardware investment.</p></div></div>
+      <div class="adv-item"><div class="adv-check">✓</div><div class="adv-text"><h4>Scalability</h4><p>Instantly scale services up or down based on business needs and traffic.</p></div></div>
+      <div class="adv-item"><div class="adv-check">✓</div><div class="adv-text"><h4>Faster Deployment</h4><p>Teams go from idea to production in hours, not months. DevOps friendly.</p></div></div>
+      <div class="adv-item"><div class="adv-check">✓</div><div class="adv-text"><h4>Always Up-to-Date</h4><p>The provider handles updates, patches & security — users always get the latest.</p></div></div>
+      <div class="adv-item"><div class="adv-check">✓</div><div class="adv-text"><h4>Accessibility</h4><p>Work from anywhere with an internet connection. Enables remote teams globally.</p></div></div>
+      <div class="adv-item"><div class="adv-check">✓</div><div class="adv-text"><h4>High Availability</h4><p>Providers guarantee 99.9%+ uptime with built-in redundancy & disaster recovery.</p></div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: CHALLENGES -->
+  <div class="slide" data-index="8">
+    <div class="orb orb-2"></div>
+    <div class="slide-heading"><span>Challenges</span> & Concerns</div>
+    <div class="slide-heading-bar"></div>
+    <div class="chal-list">
+      <div class="chal-item"><div class="chal-icon">🔒</div><h4>Security & Privacy</h4><p>Sensitive data stored on third-party servers raises data breach and compliance risks (GDPR, HIPAA).</p></div>
+      <div class="chal-item"><div class="chal-icon">🔗</div><h4>Vendor Lock-in</h4><p>Migrating between cloud providers is complex and costly due to proprietary APIs and formats.</p></div>
+      <div class="chal-item"><div class="chal-icon">📶</div><h4>Internet Dependency</h4><p>Service availability is entirely dependent on a stable, high-speed internet connection.</p></div>
+      <div class="chal-item"><div class="chal-icon">💸</div><h4>Cost Management</h4><p>Unmonitored usage can lead to unexpected bills. Requires careful resource governance.</p></div>
+      <div class="chal-item"><div class="chal-icon">⚖️</div><h4>Compliance & Regulations</h4><p>Data residency laws may restrict where data can be stored — varies by country.</p></div>
+      <div class="chal-item"><div class="chal-icon">🔧</div><h4>Limited Customization</h4><p>SaaS apps may not support all custom requirements — less control vs on-premise.</p></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: REAL WORLD EXAMPLES -->
+  <div class="slide" data-index="9">
+    <div class="orb orb-1"></div>
+    <div class="slide-heading"><span>Real-World</span> Examples</div>
+    <div class="slide-heading-bar"></div>
+    <div class="ex-grid">
+      <div class="ex-card"><div class="ex-logo">☁️</div><div class="ex-name">Amazon AWS</div><div class="ex-type">IaaS · PaaS</div><div class="ex-desc">Largest cloud platform. EC2, S3, Lambda, RDS and 200+ services.</div></div>
+      <div class="ex-card"><div class="ex-logo">🎵</div><div class="ex-name">Spotify</div><div class="ex-type">SaaS</div><div class="ex-desc">Music streaming delivered entirely as a subscription service.</div></div>
+      <div class="ex-card"><div class="ex-logo">📊</div><div class="ex-name">Salesforce</div><div class="ex-type">SaaS · PaaS</div><div class="ex-desc">CRM & business platform — first major SaaS success story.</div></div>
+      <div class="ex-card"><div class="ex-logo">🍃</div><div class="ex-name">MongoDB Atlas</div><div class="ex-type">DBaaS</div><div class="ex-desc">Fully managed cloud database — no server setup required.</div></div>
+      <div class="ex-card"><div class="ex-logo">λ</div><div class="ex-name">AWS Lambda</div><div class="ex-type">FaaS · Serverless</div><div class="ex-desc">Run code without servers — pay only per function execution.</div></div>
+      <div class="ex-card"><div class="ex-logo">🤖</div><div class="ex-name">OpenAI API</div><div class="ex-type">AIaaS</div><div class="ex-desc">AI models (GPT, DALL-E) delivered as API calls — AI as a Service.</div></div>
+      <div class="ex-card"><div class="ex-logo">📁</div><div class="ex-name">Google Drive</div><div class="ex-type">SaaS · STaaS</div><div class="ex-desc">Storage & productivity suite — entirely browser-based.</div></div>
+      <div class="ex-card"><div class="ex-logo">🎥</div><div class="ex-name">Zoom</div><div class="ex-type">SaaS · UCaaS</div><div class="ex-desc">Unified communication as a service — video, chat, webinars.</div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: FUTURE TRENDS -->
+  <div class="slide" data-index="10">
+    <div class="orb orb-2"></div>
+    <div class="slide-heading"><span>Future</span> Trends in XaaS</div>
+    <div class="slide-heading-bar"></div>
+    <div class="trends-grid">
+      <div class="trend-item"><div class="trend-icon">🤖</div><h4>AI as a Service (AIaaS)</h4><p>ML models, NLP, computer vision delivered as APIs. ChatGPT, AWS SageMaker, Google Vertex AI.</p></div>
+      <div class="trend-item"><div class="trend-icon">🌐</div><h4>Edge as a Service</h4><p>Processing moved closer to users — low latency computing at the network edge. IoT enabler.</p></div>
+      <div class="trend-item"><div class="trend-icon">🔒</div><h4>Security as a Service</h4><p>SECaaS — firewalls, threat detection, identity management delivered as managed cloud security.</p></div>
+      <div class="trend-item"><div class="trend-icon">⚡</div><h4>Quantum as a Service</h4><p>Quantum computing resources accessible via cloud APIs — IBM Q, Azure Quantum.</p></div>
+      <div class="trend-item"><div class="trend-icon">🏗️</div><h4>Low-Code/No-Code PaaS</h4><p>Visual development platforms democratize app building — no deep coding expertise needed.</p></div>
+      <div class="trend-item"><div class="trend-icon">🌍</div><h4>Sustainability as a Service</h4><p>Green cloud commitments — carbon-neutral data centers, energy monitoring for enterprises.</p></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: CONCLUSION -->
+  <div class="slide" data-index="11">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="slide-heading" style="align-self:center; text-align:center; max-width:100%"><span>Conclusion</span></div>
+    <div class="slide-heading-bar" style="align-self:center;"></div>
+    <div class="conclusion-box">
+      <div style="font-size:16px; color:var(--muted); margin-top:12px;">The global XaaS market is projected to reach</div>
+      <div class="big-stat">$2.4 Trillion</div>
+      <div style="font-size:14px; color:var(--muted); margin-bottom:4px;">by 2030 — reshaping how every industry operates</div>
+      <div style="font-size:15px; margin-top:24px; line-height:1.7; color:rgba(232,234,242,0.85);">XaaS is not just a technology trend — it is a <strong style="color:var(--accent1)">fundamental shift</strong> in how software is built, delivered, and consumed. It empowers businesses of all sizes with enterprise-grade capabilities <strong style="color:var(--accent2)">without the complexity</strong> of traditional IT ownership.</div>
+      <div class="key-points">
+        <div class="kp"><span class="kp-dot"></span>Agility</div>
+        <div class="kp"><span class="kp-dot"></span>Scalability</div>
+        <div class="kp"><span class="kp-dot"></span>Cost Savings</div>
+        <div class="kp"><span class="kp-dot"></span>Innovation</div>
+        <div class="kp"><span class="kp-dot"></span>Global Access</div>
+      </div>
+      <div style="margin-top:32px; font-family:'Space Mono',monospace; font-size:13px; color:var(--accent1); letter-spacing:2px;">THANK YOU</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<button class="nav-btn prev" id="prevBtn" onclick="changeSlide(-1)">←</button>
+<button class="nav-btn next" id="nextBtn" onclick="changeSlide(1)">→</button>
+
+<!-- Progress -->
+<div class="slide-meta">
+  <div class="progress-dots" id="dots"></div>
+  <span class="slide-num" id="slideNum">01 / 12</span>
+</div>
+
+<script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx - 6 + 'px';
+    cursor.style.top = my - 6 + 'px';
+  });
+  function animRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx - 18 + 'px';
+    ring.style.top = ry - 18 + 'px';
+    requestAnimationFrame(animRing);
+  }
+  animRing();
+
+  // Slides
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  // Build dots
+  const dotsEl = document.getElementById('dots');
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+  }
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current < n ? current : n + 1] && slides[current].classList.remove('exit'), 600);
+    current = n;
+    slides[current].classList.add('active');
+    slides[current].classList.remove('exit');
+    // Dots
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    document.getElementById('slideNum').textContent = String(current + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+  }
+
+  function changeSlide(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') changeSlide(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') changeSlide(-1);
+  });
+
+  // Touch/swipe
+  let tx = 0;
+  document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    const dx = tx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 50) changeSlide(dx > 0 ? 1 : -1);
+  });
+</script>
+</body>
+</html>
